@@ -20,9 +20,15 @@ except ImportError:
     PARSER_AVAILABLE = False
 
 
-# Supabase configuration
-SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://sspufleiikzsazouzkot.supabase.co')
-SUPABASE_KEY = os.getenv('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzcHVmbGVpaWt6c2F6b3V6a290Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1MjkzNTEsImV4cCI6MjA4MTEwNTM1MX0.Uzh8O4Tn6buf2mhcA4w1JQeCZA-dcpzhm7AovwL4c4E')
+# Supabase configuration - strip whitespace from environment variables
+SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://sspufleiikzsazouzkot.supabase.co').strip()
+SUPABASE_KEY = os.getenv('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNzcHVmbGVpaWt6c2F6b3V6a290Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1MjkzNTEsImV4cCI6MjA4MTEwNTM1MX0.Uzh8O4Tn6buf2mhcA4w1JQeCZA-dcpzhm7AovwL4c4E').strip()
+
+# Validate URL format
+if not SUPABASE_URL.startswith('http'):
+    print(f"⚠️  Invalid SUPABASE_URL format: '{SUPABASE_URL}'")
+    SUPABASE_URL = 'https://sspufleiikzsazouzkot.supabase.co'
+    print(f"   Using default: {SUPABASE_URL}")
 
 # Table name
 TABLE_NAME = 'deals'
@@ -37,6 +43,11 @@ def init_database():
     """
     global supabase
     
+    # Debug: Print what we're using
+    print(f"🔍 Initializing Supabase...")
+    print(f"   URL: {SUPABASE_URL}")
+    print(f"   KEY: {SUPABASE_KEY[:20]}..." if SUPABASE_KEY else "   KEY: None")
+    
     if SUPABASE_URL == 'https://your-project.supabase.co' or SUPABASE_KEY == 'your-anon-key-here':
         print("⚠️  Warning: Supabase credentials not configured!")
         print("Please set SUPABASE_URL and SUPABASE_KEY environment variables")
@@ -47,6 +58,7 @@ def init_database():
         print(f"✅ Connected to Supabase: {SUPABASE_URL}")
     except Exception as e:
         print(f"❌ Failed to connect to Supabase: {e}")
+        print(f"   Error type: {type(e).__name__}")
         if "getaddrinfo failed" in str(e) or "11001" in str(e):
             print("⚠️  DNS resolution failed - Supabase URL may be incorrect or network issue")
             print(f"⚠️  Current URL: {SUPABASE_URL}")
