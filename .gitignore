@@ -54,8 +54,13 @@ env/
 Thumbs.db
 
 # Debug files
-*.html
+*_debug.html
+*_raw.html
 debug_*.py
 
 # Test files
 test_*.py
+
+# But include templates folder
+!templates/**/*.html
+!static/**
