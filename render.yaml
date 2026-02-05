@@ -24,7 +24,7 @@ services:
     region: singapore
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn telegram_bot_web:app
+    startCommand: gunicorn -c gunicorn_config.py telegram_bot_web:app
     envVars:
       - key: TELEGRAM_API_ID
         sync: false
