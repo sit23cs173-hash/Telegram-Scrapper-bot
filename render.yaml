@@ -17,14 +17,14 @@ services:
       - key: PORT
         value: 10000
 
-  # Background Worker - Telegram Bot (Always Running)
-  - type: worker
+  # Web Service - Telegram Bot Listener (with health endpoint)
+  - type: web
     name: telegram-scraper-bot
     env: python
     region: singapore
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python telegram_listener.py
+    startCommand: gunicorn telegram_bot_web:app
     envVars:
       - key: TELEGRAM_API_ID
         sync: false
@@ -42,3 +42,5 @@ services:
         sync: false
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: PORT
+        value: 10001
