@@ -428,7 +428,7 @@
                     category: category,
                     sort: sort,
                     search: search,
-                    limit: 100
+                    limit: 5000  // Increased to show all deals
                 });
 
                 const response = await fetch(`/api/deals?${params}`);

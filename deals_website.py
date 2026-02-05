@@ -32,7 +32,11 @@ def get_deals():
         sort_by = request.args.get('sort', 'timestamp')
         order = request.args.get('order', 'desc')
         search = request.args.get('search', None)
-        limit = int(request.args.get('limit', 50))
+        limit = int(request.args.get('limit', 1000))  # Increased default limit
+        
+        # Cap at reasonable maximum to prevent performance issues
+        if limit > 5000:
+            limit = 5000
         
         # Build query
         query = supabase.table('active_deals').select('*')
@@ -61,7 +65,8 @@ def get_deals():
         return jsonify({
             'success': True,
             'deals': response.data,
-            'count': len(response.data)
+            'count': len(response.data),
+            'total': len(response.data)  # Add total count
         })
         
     except Exception as e:
