@@ -47,7 +47,15 @@ def init_database():
         print(f"✅ Connected to Supabase: {SUPABASE_URL}")
     except Exception as e:
         print(f"❌ Failed to connect to Supabase: {e}")
-        raise
+        if "getaddrinfo failed" in str(e) or "11001" in str(e):
+            print("⚠️  DNS resolution failed - Supabase URL may be incorrect or network issue")
+            print(f"⚠️  Current URL: {SUPABASE_URL}")
+            print("⚠️  Please verify:")
+            print("   1. Your Supabase project exists at https://supabase.com/dashboard")
+            print("   2. Update SUPABASE_URL in .env file with correct project URL")
+            print("   3. Check your internet connection")
+        # Don't raise - allow bot to continue running without database
+        supabase = None
 
 
 def get_supabase_client() -> Client:
@@ -134,13 +142,7 @@ def save_to_database(data: Dict) -> bool:
             'offer_end_date': offer_end_date,  # When the offer expires
             'product_image_url': product_image_url,  # Main product image URL
             'additional_images': additional_images if additional_images else None,  # Array of additional images
-            'image_scraped_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S") if product_image_url else None,  # Image scrape timestamp
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            # Seller details from official website
-            'seller_name': data.get('seller_name'),
-            'seller_rating': data.get('seller_rating'),
-            'is_fulfilled_by_platform': data.get('is_fulfilled_by_platform', False),
-            'seller_info': data.get('seller_info'),
         }
         
         # Strict validation - all data must come from official website
@@ -156,12 +158,27 @@ def save_to_database(data: Dict) -> bool:
             print("❌ No price (neither verified nor parsed)")
             return False
         
+        # Warn but don't reject if MRP or discount is missing
+        if not original_mrp:
+            print("⚠️  Warning: No MRP found (will be NULL in database)")
+        
+        if not discount_percent or discount_percent <= 0:
+            print("⚠️  Warning: No discount percentage (will be NULL in database)")
+        
         # Validate price range (₹10 - ₹500,000)
         try:
             price = float(discounted_price)
+            
             if price < 10 or price > 500000:
                 print(f"❌ Price out of range: ₹{price}")
                 return False
+            
+            # Only validate MRP vs price if MRP exists
+            if original_mrp:
+                mrp = float(original_mrp)
+                if mrp < price:
+                    print(f"⚠️  Warning: MRP (₹{mrp}) less than price (₹{price}) - may be data quality issue")
+                
         except (ValueError, TypeError):
             print("❌ Invalid price format")
             return False
@@ -207,6 +224,14 @@ def save_to_database(data: Dict) -> bool:
         return True
         
     except Exception as e:
+        error_str = str(e)
+        
+        # Handle duplicate link error gracefully
+        if 'duplicate key' in error_str and 'deals_link_unique' in error_str:
+            print(f"⏭️  Deal already exists in database (duplicate link), skipping...")
+            return False
+        
+        # Handle other errors
         print(f"❌ Supabase save error: {e}")
         return False
 

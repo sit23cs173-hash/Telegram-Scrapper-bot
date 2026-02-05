@@ -1,6 +1,25 @@
 services:
+  # Web Service - Deals Website (Frontend + API)
   - type: web
-    name: telegram-discount-bot
+    name: dealfinder-website
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn deals_website:app
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PORT
+        value: 10000
+
+  # Background Worker - Telegram Bot (Always Running)
+  - type: worker
+    name: telegram-scraper-bot
     env: python
     region: singapore
     plan: free
@@ -11,7 +30,9 @@ services:
         sync: false
       - key: TELEGRAM_API_HASH
         sync: false
-      - key: TELEGRAM_BOT_TOKEN
+      - key: TELEGRAM_PHONE
+        sync: false
+      - key: TELEGRAM_SESSION
         sync: false
       - key: SUPABASE_URL
         sync: false

@@ -48,7 +48,6 @@ TARGET_CHANNELS = [
     'bestlootdeals',
     'Offerzone_Tricks_1',
     'Online_Loot_DealsX',
-    'Deals_Sale_Live',
     'yashhotdealstore',
     'powerloot',
     'trickxperto',

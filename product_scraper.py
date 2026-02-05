@@ -277,33 +277,89 @@ class BaseProductScraper(ABC):
                 img_url = self._clean_image_url(img_url)
                 if self._is_valid_product_image(img_url):
                     images['main_image'] = img_url
+                    return
+        
+        # Fallback: Try any img with product image indicators
+        for img in soup.find_all('img'):
+            alt = img.get('alt', '').lower()
+            if 'product' in alt or 'item' in alt:
+                img_url = img.get('data-old-hires') or img.get('data-a-dynamic-image') or img.get('src')
+                if img_url:
+                    img_url = self._clean_image_url(img_url)
+                    if self._is_valid_product_image(img_url):
+                        images['main_image'] = img_url
+                        return
     
     
     def _extract_flipkart_primary_image(self, soup: BeautifulSoup, images: Dict):
         """Extract PRIMARY/LARGEST image from Flipkart (800x800 preferred)."""
-        # Try main image container
+        # Try JSON data from window.__INITIAL_STATE__
+        scripts = soup.find_all('script')
+        for script in scripts:
+            if script.string and 'window.__INITIAL_STATE__' in script.string:
+                try:
+                    import json
+                    # Extract JSON between = and ;</script>
+                    json_str = script.string.split('window.__INITIAL_STATE__ = ', 1)[1]
+                    json_str = json_str.rsplit(';</script>', 1)[0]
+                    data = json.loads(json_str)
+                    
+                    # Look for imageUrl in pageDataV4 (correct path)
+                    page_data_v4 = data.get('pageDataV4', {})
+                    page = page_data_v4.get('page', {})
+                    page_data = page.get('pageData', {})
+                    page_context = page_data.get('pageContext', {})
+                    img_url = page_context.get('imageUrl', '')
+                    
+                    if img_url:
+                        # Replace placeholders with actual values
+                        img_url = img_url.replace('{@width}', '800').replace('{@height}', '800').replace('{@quality}', '90')
+                        # Ensure https protocol
+                        if img_url.startswith('//'):
+                            img_url = 'https:' + img_url
+                        elif img_url.startswith('http://'):
+                            img_url = img_url.replace('http://', 'https://')
+                        img_url = self._clean_image_url(img_url)
+                        if self._is_valid_product_image(img_url):
+                            images['main_image'] = img_url
+                            return
+                except:
+                    pass
+        
+        # Fallback 1: Try main image container
         img_container = soup.find('div', class_=re.compile('_2SIJnb|_3kidJX'))
         if img_container:
             img_tag = img_container.find('img')
             if img_tag:
                 img_url = img_tag.get('src')
                 if img_url:
-                    # Flipkart URLs often have /200/200/ or /400/400/ - try to get 800x800
-                    img_url = img_url.replace('/200/200/', '/800/800/').replace('/400/400/', '/800/800/')
+                    # Flipkart URLs often have /128/128/ or /400/400/ - try to get 800x800
+                    img_url = img_url.replace('/128/128/', '/800/800/').replace('/200/200/', '/800/800/').replace('/400/400/', '/800/800/')
                     img_url = self._clean_image_url(img_url)
                     if self._is_valid_product_image(img_url):
                         images['main_image'] = img_url
                         return
         
-        # Fallback: any large product image
+        # Fallback 2: any large product image
         img_tag = soup.find('img', class_=re.compile('_2r_T1I|_396cs4'))
         if img_tag:
             img_url = img_tag.get('src')
             if img_url:
-                img_url = img_url.replace('/200/200/', '/800/800/').replace('/400/400/', '/800/800/')
+                img_url = img_url.replace('/128/128/', '/800/800/').replace('/200/200/', '/800/800/').replace('/400/400/', '/800/800/')
                 img_url = self._clean_image_url(img_url)
                 if self._is_valid_product_image(img_url):
                     images['main_image'] = img_url
+                    return
+        
+        # Fallback 3: any img tag with rukminim or flixcart in URL
+        for img in soup.find_all('img'):
+            img_url = img.get('src', '')
+            if ('rukminim' in img_url or 'flixcart' in img_url) and self._is_valid_product_image(img_url):
+                img_url = img_url.replace('/128/128/', '/800/800/').replace('/200/200/', '/800/800/').replace('/400/400/', '/800/800/')
+                # Ensure https protocol
+                if img_url.startswith('//'):
+                    img_url = 'https:' + img_url
+                return
     
     def _extract_myntra_primary_image(self, soup: BeautifulSoup, images: Dict):
         """Extract PRIMARY/LARGEST image from Myntra."""

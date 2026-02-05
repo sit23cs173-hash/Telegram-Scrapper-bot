@@ -111,7 +111,6 @@ TARGET_CHANNELS = [
     'bestlootdeals',
     'Offerzone_Tricks_1',
     'Online_Loot_DealsX',
-    'Deals_Sale_Live',
     'yashhotdealstore',
     'powerloot',
     'trickxperto',
@@ -164,6 +163,9 @@ class DiscountChannelListener:
         self.session_name = session_name
         self.target_channels = channels
         self.catchup_mode = catchup_mode
+        
+        # Load session from environment variable if available (for Render deployment)
+        self._load_session_from_env()
         
         # Initialize history manager for catch-up
         if HISTORY_MANAGER_ENABLED and catchup_mode:
@@ -229,6 +231,21 @@ class DiscountChannelListener:
                 self._log(f"⚠️  Failed to initialize smart categorizer: {e}", "WARNING")
         
         self._log("✅ Telegram Listener initialized")
+    
+    def _load_session_from_env(self):
+        """Load Telegram session from environment variable (for Render deployment)."""
+        import base64
+        
+        session_b64 = os.getenv('TELEGRAM_SESSION')
+        if session_b64:
+            try:
+                session_data = base64.b64decode(session_b64)
+                session_file = f"{self.session_name}.session"
+                with open(session_file, 'wb') as f:
+                    f.write(session_data)
+                self._log("✅ Loaded session from environment variable", "INFO")
+            except Exception as e:
+                self._log(f"⚠️  Failed to load session from env: {e}", "WARNING")
     
     def _log(self, message: str, level: str = "INFO"):
         """
@@ -336,6 +353,15 @@ class DiscountChannelListener:
             parsed_data = self._parse_message(raw_text)
             
             if parsed_data:
+                # ⚡ FILTER: Only process Flipkart and Amazon deals
+                link = parsed_data.get('link', '')
+                is_flipkart = 'flipkart.com' in link.lower() or 'fkrt.' in link.lower()
+                is_amazon = 'amazon.in' in link.lower() or 'amzn.' in link.lower()
+                
+                if not link or (not is_flipkart and not is_amazon):
+                    self._log("⏭️  Not a Flipkart/Amazon deal, skipping...")
+                    return
+                
                 self.messages_processed += 1
                 
                 # Add metadata

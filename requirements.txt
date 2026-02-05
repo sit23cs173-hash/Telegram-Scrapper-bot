@@ -33,6 +33,13 @@ Pillow>=10.0.0                   # Image processing
 python-dateutil>=2.8.2           # Date utilities
 
 # ============================================================================
+# Web Framework (for website)
+# ============================================================================
+Flask>=3.0.0                     # Web framework
+Flask-CORS>=4.0.0                # Cross-origin resource sharing
+gunicorn>=21.2.0                 # Production WSGI server
+
+# ============================================================================
 # Daily Deals Scheduler Dependencies
 # ============================================================================
 APScheduler>=3.10.4              # Task scheduling
