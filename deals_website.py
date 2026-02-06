@@ -32,11 +32,11 @@ def get_deals():
         sort_by = request.args.get('sort', 'timestamp')
         order = request.args.get('order', 'desc')
         search = request.args.get('search', None)
-        limit = int(request.args.get('limit', 1000))  # Increased default limit
+        limit = int(request.args.get('limit', 10000))  # Increased default limit
         
         # Cap at reasonable maximum to prevent performance issues
-        if limit > 5000:
-            limit = 5000
+        if limit > 10000:
+            limit = 10000
         
         # Build query
         query = supabase.table('active_deals').select('*')
