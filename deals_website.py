@@ -97,11 +97,15 @@ def get_categories():
 def get_stats():
     """Get statistics."""
     try:
-        response = supabase.table('active_deals').select('verified_discount, verified_price').execute()
+        # Get count efficiently
+        count_response = supabase.table('active_deals').select('*', count='exact').execute()
+        total_deals = count_response.count
+        
+        # Get data for calculations with limit
+        response = supabase.table('active_deals').select('verified_discount, verified_price, category').limit(10000).execute()
         deals = response.data
         
-        total_deals = len(deals)
-        avg_discount = sum([d.get('verified_discount', 0) or 0 for d in deals]) / total_deals if total_deals > 0 else 0
+        avg_discount = sum([d.get('verified_discount', 0) or 0 for d in deals]) / len(deals) if deals else 0
         
         return jsonify({
             'success': True,
