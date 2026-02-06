@@ -481,6 +481,44 @@ def cleanup_expired_deals() -> int:
         return 0
 
 
+def cleanup_old_deals() -> int:
+    """
+    Remove deals older than 24 hours from insertion time.
+    Deletes from both 'deals' and 'active_deals' tables.
+    
+    Returns:
+        int: Number of deals deleted
+    """
+    global supabase
+    
+    if supabase is None:
+        print("❌ Supabase client not initialized")
+        return 0
+    
+    try:
+        # Calculate timestamp 24 hours ago
+        cutoff_time = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Delete from deals table (main table)
+        result = supabase.table('deals')\
+            .delete()\
+            .lt('timestamp', cutoff_time)\
+            .execute()
+        
+        count = len(result.data) if hasattr(result, 'data') else 0
+        
+        if count > 0:
+            print(f"✅ Deleted {count} deals older than 24 hours")
+        else:
+            print("✅ No deals older than 24 hours to cleanup")
+        
+        return count
+        
+    except Exception as e:
+        print(f"❌ Cleanup error: {e}")
+        return 0
+
+
 def get_active_deals(limit: int = 50) -> List[Dict]:
     """
     Get all active deals (non-expired).

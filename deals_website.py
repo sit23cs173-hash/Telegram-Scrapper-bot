@@ -6,8 +6,9 @@ A beautiful website to display all deals from the database.
 
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
-from supabase_database import get_supabase_client, init_database
+from supabase_database import get_supabase_client, init_database, cleanup_old_deals
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -16,10 +17,25 @@ CORS(app)
 init_database()
 supabase = get_supabase_client()
 
+# Track last cleanup time
+last_cleanup = None
+
+
+def auto_cleanup():
+    """Run cleanup if it hasn't been run in the last hour."""
+    global last_cleanup
+    
+    if last_cleanup is None or (datetime.now() - last_cleanup).seconds > 3600:
+        print("🧹 Running automatic cleanup...")
+        cleanup_old_deals()
+        last_cleanup = datetime.now()
+
 
 @app.route('/')
 def index():
     """Main page."""
+    # Run cleanup on page load (max once per hour)
+    auto_cleanup()
     return render_template('index.html')
 
 
@@ -119,11 +135,32 @@ def get_stats():
         }), 500
 
 
+@app.route('/api/cleanup')
+def manual_cleanup():
+    """Manual cleanup endpoint - removes deals older than 24 hours."""
+    try:
+        count = cleanup_old_deals()
+        return jsonify({
+            'success': True,
+            'deleted': count,
+            'message': f'Cleaned up {count} deals older than 24 hours'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/health')
 def health():
     """Health check endpoint."""
     return jsonify({'status': 'healthy'}), 200
 
+
+# Run cleanup on server startup
+print("🧹 Running cleanup on server startup...")
+cleanup_old_deals()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
